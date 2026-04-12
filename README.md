@@ -97,7 +97,7 @@ Save the file and restart OpenCode. The plugin will be installed automatically v
 ### Method 2: One-click install via CLI
 
 ```bash
-opencode plugin opencode-models-usage-plugin/tui --global
+opencode plugin opencode-models-usage-plugin --global
 ```
 
 This command installs the plugin and updates your global config automatically.

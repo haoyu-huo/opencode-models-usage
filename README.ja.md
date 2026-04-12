@@ -88,7 +88,7 @@ OpenCode のサイドバーで、現在のセッションツリー（再帰的�
 ### 方法 2: CLI でワンコマンドインストール
 
 ```bash
-opencode plugin opencode-models-usage-plugin/tui --global
+opencode plugin opencode-models-usage-plugin --global
 ```
 
 このコマンドでプラグインのインストールとグローバル設定の更新を自動で行えます。

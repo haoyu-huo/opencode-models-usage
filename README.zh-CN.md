@@ -98,7 +98,7 @@
 ### 方式二：CLI 一键安装（最便捷）
 
 ```bash
-opencode plugin opencode-models-usage-plugin/tui --global
+opencode plugin opencode-models-usage-plugin --global
 ```
 
 这条命令会自动安装插件，并更新全局配置。

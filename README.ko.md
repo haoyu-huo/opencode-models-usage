@@ -88,7 +88,7 @@ OpenCode 사이드바에서 현재 세션 트리(재귀적인 하위 세션 포�
 ### 방법 2: CLI 한 줄로 설치하기
 
 ```bash
-opencode plugin opencode-models-usage-plugin/tui --global
+opencode plugin opencode-models-usage-plugin --global
 ```
 
 이 명령은 플러그인을 설치하고 전역 설정도 자동으로 갱신합니다.
