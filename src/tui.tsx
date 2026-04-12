@@ -6,7 +6,7 @@ import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount }
 
 import { getSessionUsage, type SessionMessageLike, type LiveTpsState } from "./session-usage"
 
-const pluginID = "local:session-model-usage"
+const pluginID = "session-model-usage"
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null

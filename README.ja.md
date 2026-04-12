@@ -78,7 +78,7 @@ OpenCode のサイドバーで、現在のセッションツリー（再帰的�
     "opencode-models-usage-plugin/tui"
   ],
   "plugin_enabled": {
-    "local:session-model-usage": true
+    "session-model-usage": true
   }
 }
 ```

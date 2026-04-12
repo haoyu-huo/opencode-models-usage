@@ -78,7 +78,7 @@ OpenCode 사이드바에서 현재 세션 트리(재귀적인 하위 세션 포�
     "opencode-models-usage-plugin/tui"
   ],
   "plugin_enabled": {
-    "local:session-model-usage": true
+    "session-model-usage": true
   }
 }
 ```

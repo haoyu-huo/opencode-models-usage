@@ -88,7 +88,7 @@
     "opencode-models-usage-plugin/tui"
   ],
   "plugin_enabled": {
-    "local:session-model-usage": true
+    "session-model-usage": true
   }
 }
 ```
