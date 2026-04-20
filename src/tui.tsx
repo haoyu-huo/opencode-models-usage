@@ -230,6 +230,7 @@ const SessionUsagePanel = (props: { api: TuiPluginApi; sessionID: string }) => {
   })
 
   const { usageMessages, liveTps } = useSessionMessages(props.api, activeSessionID)
+  const theme = () => props.api.theme.current
   
   const usage = createMemo(() => getSessionUsage(usageMessages(), props.api.state.provider, liveTps()))
 
@@ -242,27 +243,27 @@ const SessionUsagePanel = (props: { api: TuiPluginApi; sessionID: string }) => {
         <For each={usage().models}>
           {(model) => (
             <box flexDirection="column">
-              <text fg={model.isLiveTps ? "yellow" : undefined}>● {model.label}</text>
+              <text fg={model.isLiveTps ? theme().warning : theme().text}>● {model.label}</text>
               <box flexDirection="column" paddingLeft={2}>
                 <box flexDirection="row">
-                  <text>■ TPS </text>
-                  <text fg="gray">{model.isLiveTps && model.tps > 0 ? model.tps.toFixed(1) : "—"}</text>
+                  <text fg={theme().text} width={18} flexShrink={0}>■ TPS</text>
+                  <text fg={theme().textMuted}>{model.isLiveTps && model.tps > 0 ? model.tps.toFixed(1) : "—"}</text>
                 </box>
                 <box flexDirection="row">
-                  <text>■ Context Tokens </text>
-                  <text fg="gray">{model.contextTokens.toLocaleString("en-US")}</text>
+                  <text fg={theme().text} width={18} flexShrink={0}>■ Context Tokens</text>
+                  <text fg={theme().textMuted}>{model.contextTokens.toLocaleString("en-US")}</text>
                 </box>
                 <box flexDirection="row">
-                  <text>■ Session Tokens </text>
-                  <text fg="gray">{model.sessionTokens.toLocaleString("en-US")}</text>
+                  <text fg={theme().text} width={18} flexShrink={0}>■ Session Tokens</text>
+                  <text fg={theme().textMuted}>{model.sessionTokens.toLocaleString("en-US")}</text>
                 </box>
                 <box flexDirection="row">
-                  <text>■ Session Cached </text>
-                  <text fg="gray">{model.sessionCachedTokens.toLocaleString("en-US")}</text>
+                  <text fg={theme().text} width={18} flexShrink={0}>■ Session Cached</text>
+                  <text fg={theme().textMuted}>{model.sessionCachedTokens.toLocaleString("en-US")}</text>
                 </box>
                 <box flexDirection="row">
-                  <text>■ spent </text>
-                  <text fg="gray">${model.cost.toFixed(4)}</text>
+                  <text fg={theme().text} width={18} flexShrink={0}>■ spent</text>
+                  <text fg={theme().textMuted}>${model.cost.toFixed(4)}</text>
                 </box>
               </box>
             </box>
@@ -273,7 +274,20 @@ const SessionUsagePanel = (props: { api: TuiPluginApi; sessionID: string }) => {
   )
 }
 
+const globalKey = Symbol.for(`opencode-plugin-${pluginID}`)
+
 const tui: TuiPlugin = async (api) => {
+  const globalStore = globalThis as { [key: symbol]: boolean | undefined }
+
+  if (globalStore[globalKey]) {
+    return
+  }
+  globalStore[globalKey] = true
+
+  api.lifecycle.onDispose(() => {
+    globalStore[globalKey] = false
+  })
+
   api.slots.register({
     order: 150,
     slots: {
