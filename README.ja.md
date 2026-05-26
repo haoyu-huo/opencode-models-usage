@@ -21,27 +21,25 @@
 
 OpenCode のサイドバーで、現在のセッションツリー（再帰的な子セッションを含む）に登場した各モデルの使用状況を **provider/model** 単位で集約表示します。
 
-- **Live TPS**: ストリーミング出力中の tokens per second。アイドル時は `—` に戻ります
+- **Average TPS**: 実際の API タイミングデータに基づいて計算された、そのモデルの全完了応答の平均 tokens per second
 - **Context Tokens**: そのモデルの直近の返信に対応する token 総数
 - **Session Tokens**: 現在のセッション内でそのモデルが累積消費した token 総数
 - **Session Cached**: 現在のセッション内でそのモデルが累積でキャッシュヒットした token 数
 - **Total Cost**: 現時点までの累積コスト（`spent $x.xxxx` 形式）
-
-モデルが現在アクティブに出力しているときは、モデル名が**ハイライト表示**されるため、「今どのモデルが動いているか」を一目で把握できます。
 
 ## サイドバー表示例
 
 ```text
 📊 Models Usage
 ● OpenAI/GPT-5.4 Fast
-  ■ TPS 23.1
+  ■ Average TPS 23.1
   ■ Context Tokens 12,345
   ■ Session Tokens 84,163
   ■ Session Cached 81,792
   ■ spent $0.0000
 
 ● Google/Gemini-2.5-Pro
-  ■ TPS —
+  ■ Average TPS —
   ■ Context Tokens 8,942
   ■ Session Tokens 45,672
   ■ Session Cached 32,100
@@ -51,7 +49,7 @@ OpenCode のサイドバーで、現在のセッションツリー（再帰的�
 ## これが重要な理由
 
 - **完全な透明性**: OMO サブ Agent や再帰呼び出しによる使用量も自動で集約され、見えないコストがなくなります
-- **リアルタイム把握**: Live TPS、キャッシュヒット、累積コストをその場で確認できます
+- **パフォーマンス把握**: 平均 TPS、キャッシュヒット、累積コストをその場で確認できます
 - **判断しやすい**: 遅いモデルやキャッシュ効率の良いモデルを素早く見分け、戦略を調整できます
 - **安心して Coding**: 突然の高額請求や token 枯渇を気にしすぎず、開発そのものに集中できます
 
@@ -97,7 +95,7 @@ opencode plugin opencode-models-usage-plugin --global
 
 - データは provider/model label 単位で厳密に集約されます
 - OMO サブ Agent や再帰的な子セッションも完全にサポートします
-- TPS は live-only で、ストリーミング中のみ更新され、アイドル時には `—` に戻ります
+- TPS は実際の API タイミングデータに基づいて計算され、総 output tokens を総所要時間で割った平均値です
 - Context Tokens は直近の返信に対応します
 - Session Tokens と Session Cached は現在のセッションツリー全体での累積値です
 

@@ -4,7 +4,7 @@ import type { TuiPlugin, TuiPluginApi, TuiPluginModule } from "@opencode-ai/plug
 import type { Accessor } from "solid-js"
 import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js"
 
-import { getSessionUsage, type SessionMessageLike, type LiveTpsState } from "./session-usage"
+import { getSessionUsage, type SessionMessageLike } from "./session-usage"
 
 const pluginID = "session-model-usage"
 
@@ -46,14 +46,6 @@ const useSessionMessages = (api: TuiPluginApi, rootSessionID: Accessor<string>) 
   const [trackedSessionIDs, setTrackedSessionIDs] = createSignal<ReadonlySet<string>>(
     new Set([rootSessionID()]),
   )
-  
-  const [liveInfo, setLiveInfo] = createSignal<{
-    messageID: string;
-    modelID: string;
-    providerID?: string;
-    startTime: number;
-    chars: number;
-  } | null>(null)
 
   let reloadVersion = 0
 
@@ -118,66 +110,17 @@ const useSessionMessages = (api: TuiPluginApi, rootSessionID: Accessor<string>) 
     setRootMessages([])
     setExtraMessages([])
     setTrackedSessionIDs(new Set([sessionID]))
-    setLiveInfo(null)
     void reloadExtraMessages(sessionID)
   })
 
   onMount(() => {
     const unsubs = [
-      api.event.on("message.part.delta", (ev) => {
-        const { sessionID, messageID, field, delta } = ev.properties
-        if (!sessionID || !messageID || typeof delta !== "string") return
-        if (!trackedSessionIDs().has(sessionID)) return
-        if (field !== "text" && field !== "reasoning") return
-
-        setLiveInfo(prev => {
-          if (prev?.messageID === messageID) {
-            return { ...prev, chars: prev.chars + delta.length }
-          }
-
-          // Try to find the message
-          const rootMsgs = mapMessages(api.state.session.messages(rootSessionID()))
-          const historicalRootMessages = rootMessages()
-          const extra = extraMessages()
-          let found = rootMsgs.find(m => m.id === messageID)
-          if (!found) {
-            found = historicalRootMessages.find(m => m.id === messageID)
-          }
-          if (!found) {
-            found = extra.find(m => m.id === messageID)
-          }
-
-          if (!found || found.role !== "assistant" || !found.modelID) {
-            return prev
-          }
-
-          const modelID = found.modelID
-          if (typeof modelID !== "string") {
-            return prev
-          }
-
-          return {
-            messageID,
-            modelID,
-            providerID: typeof found.providerID === "string" ? found.providerID : undefined,
-            startTime: Date.now(),
-            chars: delta.length
-          }
-        })
-      }),
       api.event.on("message.updated", () => {
         void reloadExtraMessages(rootSessionID())
       }),
       api.event.on("session.status", () => {
         void reloadExtraMessages(rootSessionID())
       }),
-      api.event.on("session.idle", (ev) => {
-        if (!trackedSessionIDs().has(ev.properties.sessionID)) {
-          return
-        }
-
-        setLiveInfo(null)
-      })
     ]
 
     onCleanup(() => {
@@ -188,35 +131,11 @@ const useSessionMessages = (api: TuiPluginApi, rootSessionID: Accessor<string>) 
     })
   })
 
-  // Derive liveTps from liveInfo
-  const [now, setNow] = createSignal(Date.now())
-  
-  onMount(() => {
-    const timer = setInterval(() => setNow(Date.now()), 500)
-    onCleanup(() => clearInterval(timer))
-  })
-
-  const liveTps = createMemo<LiveTpsState | null>(() => {
-    const info = liveInfo()
-    if (!info) return null
-
-    const durationMs = now() - info.startTime
-    // Estimate 1 token = 4 chars approx during streaming
-    const tpsTokens = Math.ceil(info.chars / 4)
-
-    return {
-      modelID: info.modelID,
-      providerID: info.providerID,
-      tpsTokens,
-      tpsDurationMs: Math.max(durationMs, 1)
-    }
-  })
-
   const usageMessages = createMemo(() => {
     return [...rootMessages(), ...extraMessages()]
   })
 
-  return { usageMessages, liveTps }
+  return { usageMessages }
 }
 
 const SessionUsagePanel = (props: { api: TuiPluginApi; sessionID: string }) => {
@@ -229,10 +148,10 @@ const SessionUsagePanel = (props: { api: TuiPluginApi; sessionID: string }) => {
     return props.sessionID
   })
 
-  const { usageMessages, liveTps } = useSessionMessages(props.api, activeSessionID)
+  const { usageMessages } = useSessionMessages(props.api, activeSessionID)
   const theme = () => props.api.theme.current
-  
-  const usage = createMemo(() => getSessionUsage(usageMessages(), props.api.state.provider, liveTps()))
+
+  const usage = createMemo(() => getSessionUsage(usageMessages(), props.api.state.provider))
 
   return (
     <box flexDirection="column">
@@ -243,11 +162,11 @@ const SessionUsagePanel = (props: { api: TuiPluginApi; sessionID: string }) => {
         <For each={usage().models}>
           {(model) => (
             <box flexDirection="column">
-              <text fg={model.isLiveTps ? theme().warning : theme().text}>● {model.label}</text>
+              <text fg={theme().text}>● {model.label}</text>
               <box flexDirection="column" paddingLeft={2}>
                 <box flexDirection="row">
-                  <text fg={theme().text} width={18} flexShrink={0}>■ TPS</text>
-                  <text fg={theme().textMuted}>{model.isLiveTps && model.tps > 0 ? model.tps.toFixed(1) : "—"}</text>
+                  <text fg={theme().text} width={18} flexShrink={0}>■ Average TPS</text>
+                  <text fg={theme().textMuted}>{model.tps > 0 ? model.tps.toFixed(1) : "—"}</text>
                 </box>
                 <box flexDirection="row">
                   <text fg={theme().text} width={18} flexShrink={0}>■ Context Tokens</text>

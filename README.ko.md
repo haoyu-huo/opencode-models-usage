@@ -21,27 +21,25 @@
 
 OpenCode 사이드바에서 현재 세션 트리(재귀적인 하위 세션 포함)에 등장한 각 모델의 사용 현황을 **provider/model** 기준으로 집계하여 보여줍니다.
 
-- **Live TPS**: 스트리밍 출력 중인 현재 tokens per second. idle 상태가 되면 `—` 로 돌아갑니다
+- **Average TPS**: 실제 API 타이밍 데이터를 기반으로 계산된, 해당 모델의 모든 완료된 응답에 대한 평균 tokens per second
 - **Context Tokens**: 해당 모델의 가장 최근 응답에 해당하는 token 총량
 - **Session Tokens**: 현재 세션에서 해당 모델이 누적 소비한 token 총량
 - **Session Cached**: 현재 세션에서 해당 모델이 누적 캐시 적중한 token 총량
 - **Total Cost**: 지금까지 발생한 누적 비용 (`spent $x.xxxx` 형식)
-
-어떤 모델이 현재 활발히 출력 중이면 그 모델 이름이 **하이라이트**되어, 지금 누가 일을 하고 있는지 바로 알 수 있습니다.
 
 ## 사이드바 예시
 
 ```text
 📊 Models Usage
 ● OpenAI/GPT-5.4 Fast
-  ■ TPS 23.1
+  ■ Average TPS 23.1
   ■ Context Tokens 12,345
   ■ Session Tokens 84,163
   ■ Session Cached 81,792
   ■ spent $0.0000
 
 ● Google/Gemini-2.5-Pro
-  ■ TPS —
+  ■ Average TPS —
   ■ Context Tokens 8,942
   ■ Session Tokens 45,672
   ■ Session Cached 32,100
@@ -51,7 +49,7 @@ OpenCode 사이드바에서 현재 세션 트리(재귀적인 하위 세션 포�
 ## 왜 중요한가요?
 
 - **완전한 투명성**: OMO 하위 Agent 와 재귀 호출에서 생긴 사용량까지 자동으로 집계되어 숨겨진 비용이 없어집니다
-- **실시간 통제력**: Live TPS, 캐시 적중, 누적 비용을 한눈에 확인할 수 있습니다
+- **성능 인사이트**: 평균 TPS, 캐시 적중, 누적 비용을 한눈에 확인할 수 있습니다
 - **더 나은 판단**: 느린 모델과 캐시 효율이 좋은 모델을 빠르게 구분해 전략을 조정할 수 있습니다
 - **덜 불안한 Coding**: 갑작스러운 비용 증가나 token 고갈을 덜 걱정하고 개발에 집중할 수 있습니다
 
@@ -97,7 +95,7 @@ opencode plugin opencode-models-usage-plugin --global
 
 - 데이터는 provider/model label 기준으로 엄격하게 집계됩니다
 - OMO 하위 Agent 와 재귀적인 하위 세션을 완전히 지원합니다
-- TPS 는 live-only 이며, 스트리밍 중에만 갱신되고 idle 상태가 되면 `—` 로 돌아갑니다
+- TPS 는 실제 API 타이밍 데이터를 기반으로 계산되며, 총 output tokens 을 총 소요 시간으로 나눈 평균값입니다
 - Context Tokens 는 가장 최근 응답의 token 총량을 나타냅니다
 - Session Tokens 와 Session Cached 는 현재 세션 트리 전체의 누적값입니다
 

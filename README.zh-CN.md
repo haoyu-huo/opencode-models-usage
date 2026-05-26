@@ -22,34 +22,32 @@
 
 在 OpenCode 的侧边栏中，插件会按 **provider/model** 聚合展示当前会话树（含所有递归子会话）中每个模型的实时数据：
 
-- **实时 TPS**：正在流式输出时显示当前 tokens per second，输出结束或空闲时自动变为 `—`
+- **平均 TPS**：基于真实的 API 耗时数据，计算该模型所有已完成回复的平均 tokens per second
 - **Context Tokens**：该模型最近一次回复对应的 token 总数，用来表示这一轮上下文占用
 - **Session Tokens**：当前会话中该模型累计消耗的 token 总数
 - **Session Cached**：当前会话中该模型累计缓存命中的 token 数，能直观看到缓存节省了多少
 - **Total Cost**：当前已产生的费用（显示为 `spent $x.xxxx`）
-
-当某个模型正在活跃输出时，它的名称会**高亮显示**，让你一眼就知道「谁在干活」。
 
 ## 侧边栏实际显示示例
 
 ```text
 📊 Models Usage
 ● OpenAI/GPT-5.4 Fast
-  ■ TPS 23.1
+  ■ Average TPS 23.1
   ■ Context Tokens 12,345
   ■ Session Tokens 84,163
   ■ Session Cached 81,792
   ■ spent $0.0000
 
 ● Google/Gemini-2.5-Pro
-  ■ TPS —
+  ■ Average TPS —
   ■ Context Tokens 8,942
   ■ Session Tokens 45,672
   ■ Session Cached 32,100
   ■ spent $0.0123
 
 ● MiniMax/MiniMax-Text-01（子会话）
-  ■ TPS 41.7
+  ■ Average TPS 41.7
   ■ Context Tokens ...
   ■ Session Tokens ...
   ■ Session Cached ...
@@ -59,7 +57,7 @@
 ## 核心价值
 
 - **完全透明**：OMO 子 Agent、递归调用产生的消耗都会自动聚合，不再有“黑箱烧钱”
-- **实时掌控**：随时看到 TPS、缓存命中和累计成本，对预算和性能心里有数
+- **性能直观**：随时看到平均 TPS、缓存命中和累计成本，对模型性能心里有数
 - **高效决策**：快速判断哪个模型响应慢、哪个缓存效果好，随时优化策略
 - **低焦虑 Coding**：告别对账单暴涨、token 耗尽的恐惧，把注意力放回创作本身
 
@@ -107,7 +105,7 @@ opencode plugin opencode-models-usage-plugin --global
 
 - 数据按 provider/model label 严格聚合
 - 完整支持 OMO 子 Agent 及所有递归子会话，Gemini、MiniMax 等子模型调用也会被统计
-- TPS 为严格实时：仅在流式输出过程中动态更新，空闲状态自动恢复为 `—`
+- 平均 TPS 基于真实的 API 耗时数据计算，使用该模型的总 output tokens 除以总耗时
 - Context Tokens 反映最近一次回复对应的 token 总数
 - Session Tokens 与 Session Cached 反映当前整个会话树中的累计值
 

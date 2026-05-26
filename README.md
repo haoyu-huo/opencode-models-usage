@@ -21,34 +21,32 @@ When you're coding with multiple models and multi-layer agents, including OMO su
 
 In the OpenCode sidebar, the plugin aggregates real-time usage for every model used in the current session tree, including all recursive sub-sessions, grouped by **provider/model**:
 
-- **Live TPS**: shows current tokens per second while a response is streaming, and automatically returns to `—` when idle
+- **Average TPS**: the average tokens per second across all completed responses for that model, calculated from real API timing data
 - **Context Tokens**: the token total for that model's most recent reply, used as the current context footprint
 - **Session Tokens**: the cumulative token total consumed by that model in the current session
 - **Session Cached**: the cumulative cache-hit tokens for that model in the current session, so you can see how much cache reuse is helping
 - **Total Cost**: the amount spent so far, shown as `spent $x.xxxx`
-
-When a model is actively streaming, its name is **highlighted** so you can instantly see who is doing the work.
 
 ## Real Sidebar Example
 
 ```text
 📊 Models Usage
 ● OpenAI/GPT-5.4 Fast
-  ■ TPS 23.1
+  ■ Average TPS 23.1
   ■ Context Tokens 12,345
   ■ Session Tokens 84,163
   ■ Session Cached 81,792
   ■ spent $0.0000
 
 ● Google/Gemini-2.5-Pro
-  ■ TPS —
+  ■ Average TPS —
   ■ Context Tokens 8,942
   ■ Session Tokens 45,672
   ■ Session Cached 32,100
   ■ spent $0.0123
 
 ● MiniMax/MiniMax-Text-01 (sub-session)
-  ■ TPS 41.7
+  ■ Average TPS 41.7
   ■ Context Tokens ...
   ■ Session Tokens ...
   ■ Session Cached ...
@@ -58,7 +56,7 @@ When a model is actively streaming, its name is **highlighted** so you can insta
 ## Why It Matters
 
 - **Total Transparency**: usage from OMO sub-agents and recursive calls is automatically aggregated, so there are no more hidden costs
-- **Real-Time Control**: see live TPS, cache hits, and cumulative costs at a glance
+- **Performance Insight**: see average TPS, cache hits, and cumulative costs per model at a glance
 - **Smarter Decisions**: quickly spot slow models or strong cache performers and adjust your strategy on the fly
 - **Lower-Stress Coding**: stop worrying about surprise bills or token drain, and focus on building
 
@@ -106,7 +104,7 @@ This command installs the plugin and updates your global config automatically.
 
 - Data is grouped strictly by provider/model label
 - Fully supports OMO sub-agents and all recursive sub-sessions, including Gemini, MiniMax, and others
-- TPS is strictly live-only: it updates only during streaming and returns to `—` when idle
+- Average TPS is calculated from real API timing data, using total output tokens divided by total duration for that model
 - Context Tokens reflect the token total of the most recent reply
 - Session Tokens and Session Cached reflect cumulative values across the current session tree
 

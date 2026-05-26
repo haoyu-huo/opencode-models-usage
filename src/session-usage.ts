@@ -30,7 +30,6 @@ export interface ModelUsage {
   sessionTokens: number
   sessionCachedTokens: number
   cost: number
-  isLiveTps?: boolean
 }
 
 export interface SessionUsage {
@@ -100,13 +99,6 @@ export const getTokenTotal = (tokens?: TokenUsageLike | null): number =>
   toNumber(tokens?.cache?.read) +
   toNumber(tokens?.cache?.write)
 
-export interface LiveTpsState {
-  modelID: string
-  providerID: string | undefined
-  tpsTokens: number
-  tpsDurationMs: number
-}
-
 const getMessageTimestamp = (message: SessionMessageLike, index: number): number => {
   const completed = toNumber(message.time?.completed)
   if (completed > 0) {
@@ -124,7 +116,6 @@ const getMessageTimestamp = (message: SessionMessageLike, index: number): number
 export const getSessionUsage = (
   messages: ReadonlyArray<SessionMessageLike>,
   providers?: unknown,
-  liveTps?: LiveTpsState | null,
 ): SessionUsage => {
   const modelStats = new Map<string, {
     label: string
@@ -132,6 +123,8 @@ export const getSessionUsage = (
     sessionTokens: number
     sessionCachedTokens: number
     cost: number
+    totalOutputTokens: number
+    totalDurationMs: number
     latestTimestamp: number
   }>()
   const modelsUsed: string[] = []
@@ -157,6 +150,8 @@ export const getSessionUsage = (
         sessionTokens: 0,
         sessionCachedTokens: 0,
         cost: 0,
+        totalOutputTokens: 0,
+        totalDurationMs: 0,
         latestTimestamp: Number.NEGATIVE_INFINITY,
       })
       modelsUsed.push(modelKey)
@@ -172,6 +167,13 @@ export const getSessionUsage = (
       continue
     }
 
+    const completed = toNumber(message.time?.completed)
+    const created = toNumber(message.time?.created)
+    if (completed > created) {
+      stats.totalOutputTokens += outputTokens
+      stats.totalDurationMs += completed - created
+    }
+
     const timestamp = getMessageTimestamp(message, index)
     if (timestamp < stats.latestTimestamp) {
       continue
@@ -181,35 +183,11 @@ export const getSessionUsage = (
     stats.contextTokens = getTokenTotal(message.tokens)
   }
 
-  // Inject live TPS
-  let liveTpsKey: string | undefined
-  if (liveTps && liveTps.modelID) {
-    const providerID = liveTps.providerID
-    const modelID = liveTps.modelID
-    liveTpsKey = providerID ? `${providerID}:${modelID}` : modelID
-    if (!modelStats.has(liveTpsKey)) {
-      modelStats.set(liveTpsKey, {
-        label: resolveModelLabel(modelID, providerID, providers),
-        contextTokens: 0,
-        sessionTokens: 0,
-        sessionCachedTokens: 0,
-        cost: 0,
-        latestTimestamp: Number.NEGATIVE_INFINITY,
-      })
-      modelsUsed.push(liveTpsKey)
-    }
-  }
-
   const models = modelsUsed.map((key) => {
     const stats = modelStats.get(key)!
-    let isLiveTps = false
-    let tps = 0
-
-    if (key === liveTpsKey && liveTps) {
-      isLiveTps = true
-      const durationSeconds = liveTps.tpsDurationMs / 1000
-      tps = durationSeconds > 0 ? liveTps.tpsTokens / durationSeconds : 0
-    }
+    const tps = stats.totalDurationMs > 0
+      ? stats.totalOutputTokens / (stats.totalDurationMs / 1000)
+      : 0
 
     return {
       label: stats.label,
@@ -218,7 +196,6 @@ export const getSessionUsage = (
       sessionCachedTokens: stats.sessionCachedTokens,
       cost: stats.cost,
       tps,
-      isLiveTps,
     }
   })
 

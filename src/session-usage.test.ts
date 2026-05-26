@@ -37,7 +37,6 @@ test("assistant message contributes all token counters and cost", () => {
         sessionCachedTokens: 3,
         cost: 0.05,
         tps: 0,
-        isLiveTps: false,
       },
     ],
   })
@@ -81,8 +80,7 @@ test("repeated model uses the latest output-bearing message for tokens", () => {
         sessionTokens: 33,
         sessionCachedTokens: 7,
         cost: 0.03,
-        tps: 0,
-        isLiveTps: false,
+        tps: 11 / 3,
       },
     ],
   })
@@ -155,7 +153,6 @@ test("non-assistant messages are ignored", () => {
         sessionCachedTokens: 0,
         cost: 0.1,
         tps: 0,
-        isLiveTps: false,
       },
     ],
   })
@@ -199,7 +196,6 @@ test("provider catalog names are used when available", () => {
         sessionCachedTokens: 0,
         cost: 0,
         tps: 0,
-        isLiveTps: false,
       },
     ],
   })
@@ -243,7 +239,6 @@ test("provider catalog also works when providers are stored as an array", () => 
         sessionCachedTokens: 0,
         cost: 0,
         tps: 0,
-        isLiveTps: false,
       },
     ],
   })
@@ -316,8 +311,7 @@ test("latest output-bearing assistant message determines displayed tokens and ca
         sessionTokens: 2190,
         sessionCachedTokens: 1049,
         cost: 0,
-        tps: 0,
-        isLiveTps: false,
+        tps: 17 / 2,
       },
     ],
   })
