@@ -145,7 +145,7 @@ const CollapsibleModel = (props: {
   onToggle: () => void
 }) => {
   return (
-    <box flexDirection="column">
+    <box flexDirection="column" paddingBottom={1}>
       <box
         onMouseDown={(e) => {
           e.stopPropagation()
@@ -153,7 +153,7 @@ const CollapsibleModel = (props: {
         }}
       >
         <text fg={props.theme.text}>
-          {props.collapsed ? "▶" : "▼"} {props.model.label} — ${props.model.cost.toFixed(4)}
+          {props.collapsed ? "▸" : "▾"} {props.model.label}
         </text>
       </box>
       <Show when={!props.collapsed}>
@@ -233,7 +233,7 @@ const SessionUsagePanel = (props: { api: TuiPluginApi; sessionID: string }) => {
 
   return (
     <box flexDirection="column">
-      <text>📊 Models Usage</text>
+      <text>📊 Models Usage v2</text>
       {usage().models.length === 0 ? (
         <text>None yet</text>
       ) : (
