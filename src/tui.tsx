@@ -4,7 +4,7 @@ import type { TuiPlugin, TuiPluginApi, TuiPluginModule } from "@opencode-ai/plug
 import type { Accessor } from "solid-js"
 import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js"
 
-import { getSessionUsage, type SessionMessageLike } from "./session-usage"
+import { getSessionUsage, type ModelUsage, type SessionMessageLike } from "./session-usage"
 
 const pluginID = "session-model-usage"
 
@@ -138,6 +138,70 @@ const useSessionMessages = (api: TuiPluginApi, rootSessionID: Accessor<string>) 
   return { usageMessages }
 }
 
+const CollapsibleModel = (props: {
+  model: ModelUsage
+  theme: { text: any; textMuted: any }
+  collapsed: boolean
+  onToggle: () => void
+}) => {
+  return (
+    <box flexDirection="column" paddingBottom={1}>
+      <box
+        onMouseDown={(e) => {
+          e.stopPropagation()
+          props.onToggle()
+        }}
+      >
+        <text fg={props.theme.text}>
+          {props.collapsed ? "▸" : "▾"} {props.model.label}
+        </text>
+      </box>
+      <Show when={!props.collapsed}>
+        <box flexDirection="column" paddingLeft={2}>
+          <box flexDirection="row">
+            <text fg={props.theme.text} width={18} flexShrink={0}>
+              ■ Average TPS
+            </text>
+            <text fg={props.theme.textMuted}>
+              {props.model.tps > 0 ? props.model.tps.toFixed(1) : "—"}
+            </text>
+          </box>
+          <box flexDirection="row">
+            <text fg={props.theme.text} width={18} flexShrink={0}>
+              ■ Context Tokens
+            </text>
+            <text fg={props.theme.textMuted}>
+              {props.model.contextTokens.toLocaleString("en-US")}
+            </text>
+          </box>
+          <box flexDirection="row">
+            <text fg={props.theme.text} width={18} flexShrink={0}>
+              ■ Session Tokens
+            </text>
+            <text fg={props.theme.textMuted}>
+              {props.model.sessionTokens.toLocaleString("en-US")}
+            </text>
+          </box>
+          <box flexDirection="row">
+            <text fg={props.theme.text} width={18} flexShrink={0}>
+              ■ Session Cached
+            </text>
+            <text fg={props.theme.textMuted}>
+              {props.model.sessionCachedTokens.toLocaleString("en-US")}
+            </text>
+          </box>
+          <box flexDirection="row">
+            <text fg={props.theme.text} width={18} flexShrink={0}>
+              ■ spent
+            </text>
+            <text fg={props.theme.textMuted}>${props.model.cost.toFixed(4)}</text>
+          </box>
+        </box>
+      </Show>
+    </box>
+  )
+}
+
 const SessionUsagePanel = (props: { api: TuiPluginApi; sessionID: string }) => {
   const activeSessionID = createMemo<string>(() => {
     const route = props.api.route.current
@@ -153,39 +217,34 @@ const SessionUsagePanel = (props: { api: TuiPluginApi; sessionID: string }) => {
 
   const usage = createMemo(() => getSessionUsage(usageMessages(), props.api.state.provider))
 
+  const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set())
+
+  const toggleCollapsed = (label: string) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev)
+      if (next.has(label)) {
+        next.delete(label)
+      } else {
+        next.add(label)
+      }
+      return next
+    })
+  }
+
   return (
     <box flexDirection="column">
-      <text>📊 Models Usage</text>
+      <text>📊 Models Usage v2</text>
       {usage().models.length === 0 ? (
         <text>None yet</text>
       ) : (
         <For each={usage().models}>
           {(model) => (
-            <box flexDirection="column">
-              <text fg={theme().text}>● {model.label}</text>
-              <box flexDirection="column" paddingLeft={2}>
-                <box flexDirection="row">
-                  <text fg={theme().text} width={18} flexShrink={0}>■ Average TPS</text>
-                  <text fg={theme().textMuted}>{model.tps > 0 ? model.tps.toFixed(1) : "—"}</text>
-                </box>
-                <box flexDirection="row">
-                  <text fg={theme().text} width={18} flexShrink={0}>■ Context Tokens</text>
-                  <text fg={theme().textMuted}>{model.contextTokens.toLocaleString("en-US")}</text>
-                </box>
-                <box flexDirection="row">
-                  <text fg={theme().text} width={18} flexShrink={0}>■ Session Tokens</text>
-                  <text fg={theme().textMuted}>{model.sessionTokens.toLocaleString("en-US")}</text>
-                </box>
-                <box flexDirection="row">
-                  <text fg={theme().text} width={18} flexShrink={0}>■ Session Cached</text>
-                  <text fg={theme().textMuted}>{model.sessionCachedTokens.toLocaleString("en-US")}</text>
-                </box>
-                <box flexDirection="row">
-                  <text fg={theme().text} width={18} flexShrink={0}>■ spent</text>
-                  <text fg={theme().textMuted}>${model.cost.toFixed(4)}</text>
-                </box>
-              </box>
-            </box>
+            <CollapsibleModel
+              model={model}
+              theme={theme()}
+              collapsed={collapsed().has(model.label)}
+              onToggle={() => toggleCollapsed(model.label)}
+            />
           )}
         </For>
       )}
