@@ -33,7 +33,7 @@ A **session totals** row at the top shows aggregated cost, total tokens, and tot
 ## Real Sidebar Example
 
 ```text
-Models Usage v2.1.0 (sort: default)
+Models Usage v2.1.1 (sort: default)
 Total: $0 · 84.2K tokens
 Cache: 81.8K (97.1%)
 ▾ OpenAI/GPT-5.4 Fast
@@ -114,7 +114,7 @@ This command installs the plugin and updates your global config automatically.
 ## Package Info
 
 - npm: `@jou_hhy/opencode-models-usage-plugin`
-- current version: `2.1.0`
+- current version: `2.1.1`
 
 ## License
 
