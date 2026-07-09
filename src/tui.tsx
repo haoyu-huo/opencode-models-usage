@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url"
 import type { TuiPlugin, TuiPluginApi, TuiPluginModule } from "@opencode-ai/plugin/tui"
 import type { AssistantMessage, Provider } from "@opencode-ai/sdk/v2"
 import type { Accessor } from "solid-js"
-import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js"
+import { For, Show, createMemo, createSignal } from "solid-js"
 
 import { getSessionUsage, type ModelUsage } from "./session-usage"
 
@@ -61,91 +61,64 @@ const isAssistantMessage = (m: { role: string }): m is AssistantMessage =>
 const useSessionMessages = (api: TuiPluginApi, rootSessionID: Accessor<string>) => {
   const [rootMessages, setRootMessages] = createSignal<AssistantMessage[]>([])
   const [extraMessages, setExtraMessages] = createSignal<AssistantMessage[]>([])
-  const [trackedSessionIDs, setTrackedSessionIDs] = createSignal<ReadonlySet<string>>(
-    new Set([rootSessionID()]),
-  )
 
-  let reloadVersion = 0
+  let currentVersion = 0
 
-  const fetchRootMessages = (sessionID: string): AssistantMessage[] => {
-    return api.state.session.messages(sessionID).filter(isAssistantMessage)
-  }
-
-  const fetchChildrenMessages = async (
+  const fetchChildrenAsync = async (
     sessionID: string,
-    visited = new Set<string>(),
-  ): Promise<{ messages: AssistantMessage[]; sessionIDs: Set<string> }> => {
-    if (visited.has(sessionID)) {
-      return { messages: [], sessionIDs: visited }
-    }
-
-    visited.add(sessionID)
+    visited: Set<string>,
+    version: number,
+  ): Promise<AssistantMessage[]> => {
     const res = await api.client.session.children({ sessionID })
-    if (res.error || !res.data) {
-      return { messages: [], sessionIDs: visited }
-    }
+    if (currentVersion !== version) return []
+    if (res.error || !res.data) return []
 
     let msgs: AssistantMessage[] = []
     for (const child of res.data) {
-      const childID = child.id
-      if (visited.has(childID)) {
-        continue
-      }
+      if (currentVersion !== version) return msgs
+      if (visited.has(child.id)) continue
+      visited.add(child.id)
 
-      const childMsgs = api.state.session.messages(childID).filter(isAssistantMessage)
+      const childMsgs = api.state.session.messages(child.id).filter(isAssistantMessage)
       msgs.push(...childMsgs)
-      const nested = await fetchChildrenMessages(childID, visited)
-      msgs.push(...nested.messages)
+      const nested = await fetchChildrenAsync(child.id, visited, version)
+      msgs.push(...nested)
     }
-    return { messages: msgs, sessionIDs: visited }
+    return msgs
   }
 
-  const reloadExtraMessages = async (sessionID: string) => {
-    const version = ++reloadVersion
-    const [root, result] = await Promise.all([
-      Promise.resolve(fetchRootMessages(sessionID)),
-      fetchChildrenMessages(sessionID),
-    ])
+  const doFetch = (sessionID: string) => {
+    const version = ++currentVersion
 
-    if (version !== reloadVersion) {
-      return
-    }
-
+    const root = api.state.session.messages(sessionID).filter(isAssistantMessage)
+    if (currentVersion !== version) return
     setRootMessages(root)
-    setExtraMessages(result.messages)
-    setTrackedSessionIDs(new Set(result.sessionIDs))
+
+    const visited = new Set<string>([sessionID])
+    fetchChildrenAsync(sessionID, visited, version).then(children => {
+      if (currentVersion !== version) return
+      setExtraMessages(children)
+    })
   }
 
-  createEffect(() => {
-    const sessionID = rootSessionID()
-    setRootMessages([])
-    setExtraMessages([])
-    setTrackedSessionIDs(new Set([sessionID]))
-    void reloadExtraMessages(sessionID)
+  doFetch(rootSessionID())
+
+  const unsubMsg = api.event.on("message.updated", () => {
+    const sid = rootSessionID()
+    if (sid) doFetch(sid)
+  })
+  const unsubStatus = api.event.on("session.status", () => {
+    const sid = rootSessionID()
+    if (sid) doFetch(sid)
   })
 
-  onMount(() => {
-    const unsubs = [
-      api.event.on("message.updated", () => {
-        void reloadExtraMessages(rootSessionID())
-      }),
-      api.event.on("session.status", () => {
-        void reloadExtraMessages(rootSessionID())
-      }),
-    ]
-
-    onCleanup(() => {
-      reloadVersion += 1
-      unsubs.forEach((unsubscribe) => {
-        unsubscribe()
-      })
-    })
+  api.lifecycle.onDispose(() => {
+    currentVersion += 1
+    unsubMsg()
+    unsubStatus()
   })
 
-  const usageMessages = createMemo(() => {
-    return [...rootMessages(), ...extraMessages()]
-  })
-
+  const usageMessages = createMemo(() => [...rootMessages(), ...extraMessages()])
   return { usageMessages }
 }
 
