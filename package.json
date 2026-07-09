@@ -1,6 +1,6 @@
 {
   "name": "@jou_hhy/opencode-models-usage-plugin",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Show per-model usage, average TPS, tokens, and cost in the OpenCode sidebar.",
   "publishConfig": {
     "access": "public"

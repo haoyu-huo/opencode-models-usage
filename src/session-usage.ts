@@ -7,10 +7,17 @@ export interface ModelUsage {
   sessionTokens: number
   sessionCachedTokens: number
   cost: number
+  messageCount: number
+  cacheHitRatio: number
 }
 
 export interface SessionUsage {
   models: ModelUsage[]
+  totals: {
+    totalCost: number
+    totalTokens: number
+    totalCachedTokens: number
+  }
 }
 
 const toNumber = (value: unknown): number =>
@@ -77,6 +84,7 @@ export const getSessionUsage = (
     totalOutputTokens: number
     totalDurationMs: number
     latestTimestamp: number
+    messageCount: number
   }>()
   const modelsUsed: string[] = []
 
@@ -104,6 +112,7 @@ export const getSessionUsage = (
         totalOutputTokens: 0,
         totalDurationMs: 0,
         latestTimestamp: Number.NEGATIVE_INFINITY,
+        messageCount: 0,
       })
       modelsUsed.push(modelKey)
     }
@@ -112,6 +121,7 @@ export const getSessionUsage = (
     stats.cost += toNumber(message.cost)
     stats.sessionTokens += getTokenTotal(message.tokens)
     stats.sessionCachedTokens += toNumber(message.tokens?.cache?.read)
+    stats.messageCount += 1
 
     const outputTokens = toNumber(message.tokens?.output)
     if (outputTokens <= 0) {
@@ -139,6 +149,9 @@ export const getSessionUsage = (
     const tps = stats.totalDurationMs > 0
       ? stats.totalOutputTokens / (stats.totalDurationMs / 1000)
       : 0
+    const cacheHitRatio = stats.sessionTokens > 0
+      ? stats.sessionCachedTokens / stats.sessionTokens
+      : 0
 
     return {
       label: stats.label,
@@ -147,8 +160,16 @@ export const getSessionUsage = (
       sessionCachedTokens: stats.sessionCachedTokens,
       cost: stats.cost,
       tps,
+      messageCount: stats.messageCount,
+      cacheHitRatio,
     }
   })
 
-  return { models }
+  const totals = {
+    totalCost: models.reduce((sum, m) => sum + m.cost, 0),
+    totalTokens: models.reduce((sum, m) => sum + m.sessionTokens, 0),
+    totalCachedTokens: models.reduce((sum, m) => sum + m.sessionCachedTokens, 0),
+  }
+
+  return { models, totals }
 }

@@ -10,6 +10,16 @@ import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount }
 
 import { getSessionUsage, type ModelUsage } from "./session-usage"
 
+type SortMode = "default" | "cost" | "tokens" | "tps"
+const SORT_MODES: SortMode[] = ["default", "cost", "tokens", "tps"]
+
+const formatCompactNumber = (n: number): string => {
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(2)}B`
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
+  return n.toLocaleString("en-US")
+}
+
 const pluginID = "session-model-usage"
 
 const readPluginVersion = (): string => {
@@ -169,6 +179,14 @@ const CollapsibleModel = (props: {
           </box>
           <box flexDirection="row">
             <text fg={props.theme().text} width={18} flexShrink={0}>
+              ■ Messages
+            </text>
+            <text fg={props.theme().textMuted}>
+              {props.model.messageCount.toLocaleString("en-US")}
+            </text>
+          </box>
+          <box flexDirection="row">
+            <text fg={props.theme().text} width={18} flexShrink={0}>
               ■ Context Tokens
             </text>
             <text fg={props.theme().textMuted}>
@@ -189,6 +207,7 @@ const CollapsibleModel = (props: {
             </text>
             <text fg={props.theme().textMuted}>
               {props.model.sessionCachedTokens.toLocaleString("en-US")}
+              {" ("}{(props.model.cacheHitRatio * 100).toFixed(1)}%)
             </text>
           </box>
           <box flexDirection="row">
@@ -221,6 +240,26 @@ const SessionUsagePanel = (props: { api: TuiPluginApi; sessionID: string }) => {
     props.api.state.provider as readonly Provider[] | undefined,
   ))
 
+  const [sortMode, setSortMode] = createSignal<SortMode>("default")
+
+  const sortedModels = createMemo(() => {
+    const models = usage().models
+    const mode = sortMode()
+    if (mode === "default") return models
+    return [...models].sort((a, b) => {
+      if (mode === "cost") return b.cost - a.cost
+      if (mode === "tokens") return b.sessionTokens - a.sessionTokens
+      return b.tps - a.tps
+    })
+  })
+
+  const cycleSortMode = () => {
+    setSortMode((prev) => {
+      const idx = SORT_MODES.indexOf(prev)
+      return SORT_MODES[(idx + 1) % SORT_MODES.length]
+    })
+  }
+
   const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set())
 
   const toggleCollapsed = (label: string) => {
@@ -237,12 +276,29 @@ const SessionUsagePanel = (props: { api: TuiPluginApi; sessionID: string }) => {
 
   return (
     <box flexDirection="column">
-      <text fg={theme().text}>Models Usage v{pluginVersion}</text>
+      <box flexDirection="row" gap={1}>
+        <text fg={theme().text}>Models Usage v{pluginVersion}</text>
+        <text fg={theme().textMuted} onMouseDown={() => cycleSortMode()}>
+          (sort: {sortMode()})
+        </text>
+      </box>
+      <Show when={usage().models.length > 0}>
+        <text fg={theme().textMuted}>
+          Total: ${Number(usage().totals.totalCost.toFixed(4))} {" · "}
+          {formatCompactNumber(usage().totals.totalTokens)} tokens
+        </text>
+        <text fg={theme().textMuted}>
+          Cache: {formatCompactNumber(usage().totals.totalCachedTokens)}
+          {" ("}{(usage().totals.totalTokens > 0
+            ? (usage().totals.totalCachedTokens / usage().totals.totalTokens * 100).toFixed(1)
+            : "0.0")}%)
+        </text>
+      </Show>
       {usage().models.length === 0 ? (
         <text>None yet</text>
       ) : (
         <box flexDirection="column" gap={1}>
-          <For each={usage().models}>
+          <For each={sortedModels()}>
             {(model) => (
               <CollapsibleModel
                 model={model}
