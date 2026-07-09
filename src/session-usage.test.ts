@@ -1,7 +1,27 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import { getSessionUsage, getTokenTotal, type SessionMessageLike } from "./session-usage"
+import { getSessionUsage, getTokenTotal } from "./session-usage"
+
+interface MessageLike {
+  role: string
+  modelID?: string | null
+  providerID?: string | null
+  tokens?: {
+    input?: number | null
+    output?: number | null
+    reasoning?: number | null
+    cache?: {
+      read?: number | null
+      write?: number | null
+    } | null
+  } | null
+  cost?: number | null
+  time?: {
+    created?: number | null
+    completed?: number | null
+  } | null
+}
 
 test("empty session returns no models", () => {
   assert.deepEqual(getSessionUsage([]), {
@@ -43,7 +63,7 @@ test("assistant message contributes all token counters and cost", () => {
 })
 
 test("repeated model uses the latest output-bearing message for tokens", () => {
-  const messages: SessionMessageLike[] = [
+  const messages: MessageLike[] = [
     {
       role: "assistant",
       providerID: "openai",
@@ -159,18 +179,39 @@ test("non-assistant messages are ignored", () => {
 })
 
 test("provider catalog names are used when available", () => {
-  const providers = {
-    openai: {
+  const providers = [
+    {
       id: "openai",
       name: "OpenAI",
+      source: "config" as const,
+      env: [] as string[],
+      key: undefined as string | undefined,
+      options: {},
       models: {
         "gpt-4.1": {
           id: "gpt-4.1",
+          providerID: "openai",
           name: "GPT-4.1",
+          api: { id: "", url: "", npm: "" },
+          capabilities: {
+            temperature: false,
+            reasoning: false,
+            attachment: false,
+            toolcall: false,
+            input: { text: true, audio: false, image: false, video: false, pdf: false },
+            output: { text: true, audio: false, image: false, video: false, pdf: false },
+            interleaved: false,
+          },
+          cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
+          limit: { context: 0, output: 0 },
+          status: "active" as const,
+          options: {},
+          headers: {},
+          release_date: "",
         },
       },
     },
-  }
+  ]
 
   const usage = getSessionUsage(
     [
@@ -206,10 +247,31 @@ test("provider catalog also works when providers are stored as an array", () => 
     {
       id: "anthropic",
       name: "Anthropic",
+      source: "config" as const,
+      env: [] as string[],
+      key: undefined as string | undefined,
+      options: {},
       models: {
         "claude-sonnet-4": {
           id: "claude-sonnet-4",
+          providerID: "anthropic",
           name: "Claude Sonnet 4",
+          api: { id: "", url: "", npm: "" },
+          capabilities: {
+            temperature: false,
+            reasoning: false,
+            attachment: false,
+            toolcall: false,
+            input: { text: true, audio: false, image: false, video: false, pdf: false },
+            output: { text: true, audio: false, image: false, video: false, pdf: false },
+            interleaved: false,
+          },
+          cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
+          limit: { context: 0, output: 0 },
+          status: "active" as const,
+          options: {},
+          headers: {},
+          release_date: "",
         },
       },
     },

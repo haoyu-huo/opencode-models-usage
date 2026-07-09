@@ -4,10 +4,11 @@ import { readFileSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import type { TuiPlugin, TuiPluginApi, TuiPluginModule } from "@opencode-ai/plugin/tui"
+import type { AssistantMessage, Provider } from "@opencode-ai/sdk/v2"
 import type { Accessor } from "solid-js"
 import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from "solid-js"
 
-import { getSessionUsage, type ModelUsage, type SessionMessageLike } from "./session-usage"
+import { getSessionUsage, type ModelUsage } from "./session-usage"
 
 const pluginID = "session-model-usage"
 
@@ -24,60 +25,46 @@ const readPluginVersion = (): string => {
 
 const pluginVersion = readPluginVersion()
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
+const mapMessage = (message: AssistantMessage): {
+  role: string
+  modelID: string | null
+  providerID: string | null
+  tokens: AssistantMessage["tokens"] | null
+  cost: number | null
+  time: { created: number | null; completed: number | null } | null
+} => ({
+  role: message.role,
+  modelID: message.modelID,
+  providerID: message.providerID,
+  tokens: message.tokens,
+  cost: message.cost,
+  time: message.time
+    ? { created: message.time.created, completed: message.time.completed ?? null }
+    : null,
+})
 
-const mapMessage = (message: unknown): SessionMessageLike => {
-  if (!isRecord(message)) {
-    return { role: "unknown" }
-  }
+const mapMessages = (messages: readonly AssistantMessage[]) => messages.map(mapMessage)
 
-  return {
-    id: typeof message.id === "string" ? message.id : undefined,
-    role: typeof message.role === "string" ? message.role : "unknown",
-    modelID: typeof message.modelID === "string" ? message.modelID : undefined,
-    providerID: typeof message.providerID === "string" ? message.providerID : undefined,
-    tokens: isRecord(message.tokens) ? message.tokens : undefined,
-    cost: typeof message.cost === "number" ? message.cost : undefined,
-    summary: message.summary,
-    time: isRecord(message.time)
-      ? {
-          created:
-            typeof message.time.created === "number" ? message.time.created : undefined,
-          completed:
-            typeof message.time.completed === "number" ? message.time.completed : undefined,
-        }
-      : undefined,
-    finish: typeof message.finish === "string" ? message.finish : undefined,
-  }
-}
-
-const mapMessages = (messages: readonly unknown[]): SessionMessageLike[] => {
-  return messages.map((message) => mapMessage(message))
-}
+const isAssistantMessage = (m: { role: string }): m is AssistantMessage =>
+  m.role === "assistant"
 
 const useSessionMessages = (api: TuiPluginApi, rootSessionID: Accessor<string>) => {
-  const [rootMessages, setRootMessages] = createSignal<SessionMessageLike[]>([])
-  const [extraMessages, setExtraMessages] = createSignal<SessionMessageLike[]>([])
+  const [rootMessages, setRootMessages] = createSignal<AssistantMessage[]>([])
+  const [extraMessages, setExtraMessages] = createSignal<AssistantMessage[]>([])
   const [trackedSessionIDs, setTrackedSessionIDs] = createSignal<ReadonlySet<string>>(
     new Set([rootSessionID()]),
   )
 
   let reloadVersion = 0
 
-  const fetchRootMessages = async (sessionID: string): Promise<SessionMessageLike[]> => {
-    const result = await api.client.session.messages({ sessionID })
-    if (result.error || !result.data) {
-      return []
-    }
-
-    return mapMessages(result.data.map((message) => message.info))
+  const fetchRootMessages = (sessionID: string): AssistantMessage[] => {
+    return api.state.session.messages(sessionID).filter(isAssistantMessage)
   }
 
   const fetchChildrenMessages = async (
     sessionID: string,
     visited = new Set<string>(),
-  ): Promise<{ messages: SessionMessageLike[]; sessionIDs: Set<string> }> => {
+  ): Promise<{ messages: AssistantMessage[]; sessionIDs: Set<string> }> => {
     if (visited.has(sessionID)) {
       return { messages: [], sessionIDs: visited }
     }
@@ -88,17 +75,15 @@ const useSessionMessages = (api: TuiPluginApi, rootSessionID: Accessor<string>) 
       return { messages: [], sessionIDs: visited }
     }
 
-    let msgs: SessionMessageLike[] = []
+    let msgs: AssistantMessage[] = []
     for (const child of res.data) {
       const childID = child.id
       if (visited.has(childID)) {
         continue
       }
 
-      const mRes = await api.client.session.messages({ sessionID: childID })
-      if (!mRes.error && mRes.data) {
-        msgs.push(...mapMessages(mRes.data.map((message) => message.info)))
-      }
+      const childMsgs = api.state.session.messages(childID).filter(isAssistantMessage)
+      msgs.push(...childMsgs)
       const nested = await fetchChildrenMessages(childID, visited)
       msgs.push(...nested.messages)
     }
@@ -108,7 +93,7 @@ const useSessionMessages = (api: TuiPluginApi, rootSessionID: Accessor<string>) 
   const reloadExtraMessages = async (sessionID: string) => {
     const version = ++reloadVersion
     const [root, result] = await Promise.all([
-      fetchRootMessages(sessionID),
+      Promise.resolve(fetchRootMessages(sessionID)),
       fetchChildrenMessages(sessionID),
     ])
 
@@ -231,7 +216,10 @@ const SessionUsagePanel = (props: { api: TuiPluginApi; sessionID: string }) => {
   const { usageMessages } = useSessionMessages(props.api, activeSessionID)
   const theme = () => props.api.theme.current
 
-  const usage = createMemo(() => getSessionUsage(usageMessages(), props.api.state.provider))
+  const usage = createMemo(() => getSessionUsage(
+    mapMessages(usageMessages() as AssistantMessage[]),
+    props.api.state.provider as readonly Provider[] | undefined,
+  ))
 
   const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set())
 
@@ -249,7 +237,7 @@ const SessionUsagePanel = (props: { api: TuiPluginApi; sessionID: string }) => {
 
   return (
     <box flexDirection="column">
-      <text fg={theme().text}>📊 Models Usage v{pluginVersion}</text>
+      <text fg={theme().text}>Models Usage v{pluginVersion}</text>
       {usage().models.length === 0 ? (
         <text>None yet</text>
       ) : (
@@ -272,7 +260,7 @@ const SessionUsagePanel = (props: { api: TuiPluginApi; sessionID: string }) => {
 
 const globalKey = Symbol.for(`opencode-plugin-${pluginID}`)
 
-const tui: TuiPlugin = async (api) => {
+const tui: TuiPlugin = async (api, _options, _meta) => {
   const globalStore = globalThis as { [key: symbol]: boolean | undefined }
 
   if (globalStore[globalKey]) {
