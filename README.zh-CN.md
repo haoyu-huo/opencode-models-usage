@@ -23,35 +23,35 @@
 在 OpenCode 的侧边栏中，插件会按 **provider/model** 聚合展示当前会话树（含所有递归子会话）中每个模型的实时数据：
 
 - **平均 TPS**：基于真实的 API 耗时数据，计算该模型所有已完成回复的平均 tokens per second
+- **Messages**：该模型在当前会话中处理的 assistant 消息数量
 - **Context Tokens**：该模型最近一次回复对应的 token 总数，用来表示这一轮上下文占用
 - **Session Tokens**：当前会话中该模型累计消耗的 token 总数
-- **Session Cached**：当前会话中该模型累计缓存命中的 token 数，能直观看到缓存节省了多少
+- **Session Cached**：当前会话中该模型累计缓存命中的 token 数，附带缓存命中率百分比
 - **Total Cost**：当前已产生的费用（显示为 `spent $x.xxxx`）
+
+顶部会显示**全局聚合行**，汇总所有模型的 cost、总 token 数和缓存命中率。点击排序指示器可按 cost、tokens 或 TPS 排序。
 
 ## 侧边栏实际显示示例
 
 ```text
-📊 Models Usage
-● OpenAI/GPT-5.4 Fast
+Models Usage v2.1.0 (sort: default)
+Total: $0 · 84.2K tokens
+Cache: 81.8K (97.1%)
+▾ OpenAI/GPT-5.4 Fast
   ■ Average TPS 23.1
+  ■ Messages 5
   ■ Context Tokens 12,345
   ■ Session Tokens 84,163
-  ■ Session Cached 81,792
+  ■ Session Cached 81,792 (97.2%)
   ■ spent $0.0000
 
-● Google/Gemini-2.5-Pro
+▸ Google/Gemini-2.5-Pro
   ■ Average TPS —
+  ■ Messages 2
   ■ Context Tokens 8,942
   ■ Session Tokens 45,672
-  ■ Session Cached 32,100
+  ■ Session Cached 32,100 (70.3%)
   ■ spent $0.0123
-
-● MiniMax/MiniMax-Text-01（子会话）
-  ■ Average TPS 41.7
-  ■ Context Tokens ...
-  ■ Session Tokens ...
-  ■ Session Cached ...
-  ■ spent ...
 ```
 
 ## 核心价值
@@ -108,11 +108,14 @@ opencode plugin @jou_hhy/opencode-models-usage-plugin --global
 - 平均 TPS 基于真实的 API 耗时数据计算，使用该模型的总 output tokens 除以总耗时
 - Context Tokens 反映最近一次回复对应的 token 总数
 - Session Tokens 与 Session Cached 反映当前整个会话树中的累计值
+- Messages 计数包含所有 assistant 消息，包括零输出的消息
+- 缓存命中率 = `sessionCachedTokens / sessionTokens`
+- 点击 header 中的排序指示器可按 cost、session tokens 或 TPS 排序
 
 ## 包信息
 
 - npm：`@jou_hhy/opencode-models-usage-plugin`
-- 当前版本：`2.0.0`
+- 当前版本：`2.1.0`
 
 ## License
 

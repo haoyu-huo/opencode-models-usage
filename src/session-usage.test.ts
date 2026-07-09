@@ -26,6 +26,7 @@ interface MessageLike {
 test("empty session returns no models", () => {
   assert.deepEqual(getSessionUsage([]), {
     models: [],
+    totals: { totalCost: 0, totalTokens: 0, totalCachedTokens: 0 },
   })
 })
 
@@ -57,8 +58,11 @@ test("assistant message contributes all token counters and cost", () => {
         sessionCachedTokens: 3,
         cost: 0.05,
         tps: 0,
+        messageCount: 1,
+        cacheHitRatio: 3 / 28,
       },
     ],
+    totals: { totalCost: 0.05, totalTokens: 28, totalCachedTokens: 3 },
   })
 })
 
@@ -101,8 +105,11 @@ test("repeated model uses the latest output-bearing message for tokens", () => {
         sessionCachedTokens: 7,
         cost: 0.03,
         tps: 11 / 3,
+        messageCount: 2,
+        cacheHitRatio: 7 / 33,
       },
     ],
+    totals: { totalCost: 0.03, totalTokens: 33, totalCachedTokens: 7 },
   })
 })
 
@@ -135,9 +142,14 @@ test("multiple models preserve first-seen order", () => {
   assert.equal(usage.models[0].contextTokens, 3)
   assert.equal(usage.models[0].sessionTokens, 3)
   assert.equal(usage.models[0].sessionCachedTokens, 0)
+  assert.equal(usage.models[0].messageCount, 1)
+  assert.equal(usage.models[0].cacheHitRatio, 0)
   assert.equal(usage.models[1].contextTokens, 7)
   assert.equal(usage.models[1].sessionTokens, 7)
   assert.equal(usage.models[1].sessionCachedTokens, 0)
+  assert.equal(usage.models[1].messageCount, 1)
+  assert.equal(usage.models[1].cacheHitRatio, 0)
+  assert.deepEqual(usage.totals, { totalCost: 0, totalTokens: 10, totalCachedTokens: 0 })
 })
 
 test("non-assistant messages are ignored", () => {
@@ -173,8 +185,11 @@ test("non-assistant messages are ignored", () => {
         sessionCachedTokens: 0,
         cost: 0.1,
         tps: 0,
+        messageCount: 1,
+        cacheHitRatio: 0,
       },
     ],
+    totals: { totalCost: 0.1, totalTokens: 5, totalCachedTokens: 0 },
   })
 })
 
@@ -237,8 +252,11 @@ test("provider catalog names are used when available", () => {
         sessionCachedTokens: 0,
         cost: 0,
         tps: 0,
+        messageCount: 1,
+        cacheHitRatio: 0,
       },
     ],
+    totals: { totalCost: 0, totalTokens: 5, totalCachedTokens: 0 },
   })
 })
 
@@ -301,8 +319,11 @@ test("provider catalog also works when providers are stored as an array", () => 
         sessionCachedTokens: 0,
         cost: 0,
         tps: 0,
+        messageCount: 1,
+        cacheHitRatio: 0,
       },
     ],
+    totals: { totalCost: 0, totalTokens: 10, totalCachedTokens: 0 },
   })
 })
 
@@ -374,7 +395,38 @@ test("latest output-bearing assistant message determines displayed tokens and ca
         sessionCachedTokens: 1049,
         cost: 0,
         tps: 17 / 2,
+        messageCount: 3,
+        cacheHitRatio: 1049 / 2190,
       },
     ],
+    totals: { totalCost: 0, totalTokens: 2190, totalCachedTokens: 1049 },
+  })
+})
+
+test("messageCount increments per assistant message", () => {
+  const usage = getSessionUsage([
+    { role: "assistant", providerID: "openai", modelID: "gpt-4", tokens: { input: 1, output: 1 } },
+    { role: "assistant", providerID: "openai", modelID: "gpt-4", tokens: { input: 2, output: 0 } },
+    { role: "assistant", providerID: "openai", modelID: "gpt-4", tokens: { input: 3, output: 1 } },
+  ])
+  assert.equal(usage.models[0].messageCount, 3)
+})
+
+test("cacheHitRatio is zero when sessionTokens is zero", () => {
+  const usage = getSessionUsage([
+    { role: "assistant", providerID: "openai", modelID: "gpt-4", tokens: null },
+  ])
+  assert.equal(usage.models[0].cacheHitRatio, 0)
+})
+
+test("totals aggregate across multiple models", () => {
+  const usage = getSessionUsage([
+    { role: "assistant", providerID: "a", modelID: "m1", cost: 0.01, tokens: { input: 10, output: 5, cache: { read: 2 } } },
+    { role: "assistant", providerID: "b", modelID: "m2", cost: 0.02, tokens: { input: 20, output: 10, cache: { read: 3 } } },
+  ])
+  assert.deepEqual(usage.totals, {
+    totalCost: 0.03,
+    totalTokens: 50,
+    totalCachedTokens: 5,
   })
 })

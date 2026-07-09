@@ -22,27 +22,34 @@
 OpenCode のサイドバーで、現在のセッションツリー（再帰的な子セッションを含む）に登場した各モデルの使用状況を **provider/model** 単位で集約表示します。
 
 - **Average TPS**: 実際の API タイミングデータに基づいて計算された、そのモデルの全完了応答の平均 tokens per second
+- **Messages**: そのモデルが現在のセッションで処理した assistant メッセージ数
 - **Context Tokens**: そのモデルの直近の返信に対応する token 総数
 - **Session Tokens**: 現在のセッション内でそのモデルが累積消費した token 総数
-- **Session Cached**: 現在のセッション内でそのモデルが累積でキャッシュヒットした token 数
+- **Session Cached**: 現在のセッション内でそのモデルが累積でキャッシュヒットした token 数（キャッシュヒット率付き）
 - **Total Cost**: 現時点までの累積コスト（`spent $x.xxxx` 形式）
+
+上部に**セッション集計行**が表示され、全モデルの合計コスト、総 token 数、キャッシュヒット率を確認できます。ソートインジケーターをクリックすると、コスト・tokens・TPS で並び替えられます。
 
 ## サイドバー表示例
 
 ```text
-📊 Models Usage
-● OpenAI/GPT-5.4 Fast
+Models Usage v2.1.0 (sort: default)
+Total: $0 · 84.2K tokens
+Cache: 81.8K (97.1%)
+▾ OpenAI/GPT-5.4 Fast
   ■ Average TPS 23.1
+  ■ Messages 5
   ■ Context Tokens 12,345
   ■ Session Tokens 84,163
-  ■ Session Cached 81,792
+  ■ Session Cached 81,792 (97.2%)
   ■ spent $0.0000
 
-● Google/Gemini-2.5-Pro
+▸ Google/Gemini-2.5-Pro
   ■ Average TPS —
+  ■ Messages 2
   ■ Context Tokens 8,942
   ■ Session Tokens 45,672
-  ■ Session Cached 32,100
+  ■ Session Cached 32,100 (70.3%)
   ■ spent $0.0123
 ```
 
@@ -98,11 +105,14 @@ opencode plugin @jou_hhy/opencode-models-usage-plugin --global
 - TPS は実際の API タイミングデータに基づいて計算され、総 output tokens を総所要時間で割った平均値です
 - Context Tokens は直近の返信に対応します
 - Session Tokens と Session Cached は現在のセッションツリー全体での累積値です
+- Messages は出力 token が 0 のメッセージも含むすべての assistant メッセージをカウントします
+- キャッシュヒット率 = `sessionCachedTokens / sessionTokens`
+- ヘッダーのソートインジケーターをクリックすると、コスト・session tokens・TPS で並び替えられます
 
 ## パッケージ情報
 
 - npm: `@jou_hhy/opencode-models-usage-plugin`
-- 現在のバージョン: `2.0.0`
+- 現在のバージョン: `2.1.0`
 
 ## License
 
