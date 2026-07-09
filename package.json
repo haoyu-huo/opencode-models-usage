@@ -1,6 +1,6 @@
 {
   "name": "@jou_hhy/opencode-models-usage-plugin",
-  "version": "1.1.2",
+  "version": "2.0.0",
   "description": "Show per-model usage, average TPS, tokens, and cost in the OpenCode sidebar.",
   "publishConfig": {
     "access": "public"
@@ -16,16 +16,16 @@
     "src"
   ],
   "engines": {
-    "opencode": ">=1.4.3"
+    "opencode": ">=1.17.0"
   },
   "scripts": {
     "test": "tsx --test src/**/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@opencode-ai/plugin": "1.4.3",
-    "@opentui/solid": "0.1.97",
-    "solid-js": "1.9.11"
+    "@opencode-ai/plugin": "1.17.16",
+    "@opentui/solid": "0.4.3",
+    "solid-js": "1.9.12"
   },
   "devDependencies": {
     "@types/node": "25.6.0",

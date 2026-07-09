@@ -55,7 +55,7 @@ OpenCode のサイドバーで、現在のセッションツリー（再帰的�
 
 ## 動作要件
 
-- OpenCode `>= 1.4.3`
+- OpenCode `>= 1.17.0`
 
 ## インストール
 
@@ -73,7 +73,7 @@ OpenCode のサイドバーで、現在のセッションツリー（再帰的�
 {
   "$schema": "https://opencode.ai/tui.json",
   "plugin": [
-    "opencode-models-usage-plugin/tui"
+    "@jou_hhy/opencode-models-usage-plugin"
   ],
   "plugin_enabled": {
     "session-model-usage": true
@@ -86,7 +86,7 @@ OpenCode のサイドバーで、現在のセッションツリー（再帰的�
 ### 方法 2: CLI でワンコマンドインストール
 
 ```bash
-opencode plugin opencode-models-usage-plugin --global
+opencode plugin @jou_hhy/opencode-models-usage-plugin --global
 ```
 
 このコマンドでプラグインのインストールとグローバル設定の更新を自動で行えます。
@@ -101,8 +101,8 @@ opencode plugin opencode-models-usage-plugin --global
 
 ## パッケージ情報
 
-- npm: `opencode-models-usage-plugin`
-- 現在のバージョン: `0.1.0`
+- npm: `@jou_hhy/opencode-models-usage-plugin`
+- 現在のバージョン: `2.0.0`
 
 ## License
 

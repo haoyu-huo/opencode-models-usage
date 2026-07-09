@@ -65,7 +65,7 @@
 
 ## 运行要求
 
-- OpenCode `>= 1.4.3`
+- OpenCode `>= 1.17.0`
 
 ## 安装方式
 
@@ -83,7 +83,7 @@
 {
   "$schema": "https://opencode.ai/tui.json",
   "plugin": [
-    "opencode-models-usage-plugin/tui"
+    "@jou_hhy/opencode-models-usage-plugin"
   ],
   "plugin_enabled": {
     "session-model-usage": true
@@ -96,7 +96,7 @@
 ### 方式二：CLI 一键安装（最便捷）
 
 ```bash
-opencode plugin opencode-models-usage-plugin --global
+opencode plugin @jou_hhy/opencode-models-usage-plugin --global
 ```
 
 这条命令会自动安装插件，并更新全局配置。
@@ -111,8 +111,8 @@ opencode plugin opencode-models-usage-plugin --global
 
 ## 包信息
 
-- npm：`opencode-models-usage-plugin`
-- 当前版本：`0.1.0`
+- npm：`@jou_hhy/opencode-models-usage-plugin`
+- 当前版本：`2.0.0`
 
 ## License
 

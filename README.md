@@ -64,7 +64,7 @@ Whether you are heavily using model routing, complex agent orchestration, or sim
 
 ## Requirements
 
-- OpenCode `>= 1.4.3`
+- OpenCode `>= 1.17.0`
 
 ## Installation
 
@@ -82,7 +82,7 @@ Add the following:
 {
   "$schema": "https://opencode.ai/tui.json",
   "plugin": [
-    "opencode-models-usage-plugin/tui"
+    "@jou_hhy/opencode-models-usage-plugin"
   ],
   "plugin_enabled": {
     "session-model-usage": true
@@ -95,7 +95,7 @@ Save the file and restart OpenCode. The plugin will be installed automatically v
 ### Method 2: One-click install via CLI
 
 ```bash
-opencode plugin opencode-models-usage-plugin --global
+opencode plugin @jou_hhy/opencode-models-usage-plugin --global
 ```
 
 This command installs the plugin and updates your global config automatically.
@@ -110,8 +110,8 @@ This command installs the plugin and updates your global config automatically.
 
 ## Package Info
 
-- npm: `opencode-models-usage-plugin`
-- current version: `0.1.0`
+- npm: `@jou_hhy/opencode-models-usage-plugin`
+- current version: `2.0.0`
 
 ## License
 

@@ -1,27 +1,4 @@
-export interface TokenUsageLike {
-  input?: number | null
-  output?: number | null
-  reasoning?: number | null
-  cache?: {
-    read?: number | null
-    write?: number | null
-  } | null
-}
-
-export interface SessionMessageLike {
-  id?: string
-  role: string
-  modelID?: string | null
-  providerID?: string | null
-  tokens?: TokenUsageLike | null
-  cost?: number | null
-  summary?: unknown
-  time?: {
-    created?: number | null
-    completed?: number | null
-  } | null
-  finish?: string | null
-}
+import type { Provider } from "@opencode-ai/sdk/v2"
 
 export interface ModelUsage {
   label: string
@@ -36,70 +13,44 @@ export interface SessionUsage {
   models: ModelUsage[]
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
-
 const toNumber = (value: unknown): number =>
   typeof value === "number" && Number.isFinite(value) ? value : 0
-
-const getStringProp = (value: unknown, key: string): string | undefined => {
-  if (!isRecord(value)) {
-    return undefined
-  }
-
-  const prop = value[key]
-  return typeof prop === "string" ? prop : undefined
-}
-
-const getObjectProp = (value: unknown, key: string): unknown => {
-  if (!isRecord(value)) {
-    return undefined
-  }
-
-  return value[key]
-}
-
-const findProvider = (providers: unknown, providerID: string): unknown => {
-  if (Array.isArray(providers)) {
-    return providers.find((provider) => getStringProp(provider, "id") === providerID)
-  }
-
-  return getObjectProp(providers, providerID)
-}
-
-const findModel = (models: unknown, modelID: string): unknown => {
-  if (Array.isArray(models)) {
-    return models.find((model) => getStringProp(model, "id") === modelID)
-  }
-
-  return getObjectProp(models, modelID)
-}
 
 export const resolveModelLabel = (
   modelID: string,
   providerID: string | undefined,
-  providers: unknown,
+  providers: readonly Provider[] | undefined,
 ): string => {
   if (!providerID) {
     return modelID
   }
 
-  const provider = findProvider(providers, providerID)
-  const providerName = getStringProp(provider, "name") ?? providerID
-  const model = findModel(getObjectProp(provider, "models"), modelID)
-  const modelName = getStringProp(model, "name") ?? modelID
+  const provider = providers?.find((p) => p.id === providerID)
+  const providerName = provider?.name ?? providerID
+  const model = provider?.models?.[modelID]
+  const modelName = model?.name ?? modelID
 
   return `${providerName}/${modelName}`
 }
 
-export const getTokenTotal = (tokens?: TokenUsageLike | null): number =>
+type TokenLike = {
+  input?: number | null
+  output?: number | null
+  reasoning?: number | null
+  cache?: {
+    read?: number | null
+    write?: number | null
+  } | null
+}
+
+export const getTokenTotal = (tokens: TokenLike | null | undefined): number =>
   toNumber(tokens?.input) +
   toNumber(tokens?.output) +
   toNumber(tokens?.reasoning) +
   toNumber(tokens?.cache?.read) +
   toNumber(tokens?.cache?.write)
 
-const getMessageTimestamp = (message: SessionMessageLike, index: number): number => {
+const getMessageTimestamp = (message: { time?: { completed?: number | null; created?: number | null } | null }, index: number): number => {
   const completed = toNumber(message.time?.completed)
   if (completed > 0) {
     return completed
@@ -114,8 +65,8 @@ const getMessageTimestamp = (message: SessionMessageLike, index: number): number
 }
 
 export const getSessionUsage = (
-  messages: ReadonlyArray<SessionMessageLike>,
-  providers?: unknown,
+  messages: ReadonlyArray<{ role: string; modelID?: string | null; providerID?: string | null; tokens?: TokenLike | null; cost?: number | null; time?: { created?: number | null; completed?: number | null } | null }>,
+  providers?: readonly Provider[],
 ): SessionUsage => {
   const modelStats = new Map<string, {
     label: string
