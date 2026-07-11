@@ -59,7 +59,7 @@ const isAssistantMessage = (m: { role: string }): m is AssistantMessage =>
   m.role === "assistant"
 
 const useSessionMessages = (api: TuiPluginApi, rootSessionID: Accessor<string>) => {
-  const [tick, setTick] = createSignal(0)
+  const [rootMessages, setRootMessages] = createSignal<AssistantMessage[]>([])
   const [extraMessages, setExtraMessages] = createSignal<AssistantMessage[]>([])
 
   let currentVersion = 0
@@ -100,9 +100,25 @@ const useSessionMessages = (api: TuiPluginApi, rootSessionID: Accessor<string>) 
     return msgs
   }
 
+  const refreshFromCache = (sessionID: string) => {
+    const cached = api.state.session.messages(sessionID)
+      .filter(isAssistantMessage)
+    setRootMessages(cached)
+  }
+
+  const refreshFromHTTP = async (sessionID: string, version: number) => {
+    try {
+      const res = await api.client.session.messages({ sessionID })
+      if (currentVersion !== version) return
+      if (res.error || !res.data) return
+      setRootMessages(res.data.map((item) => item.info).filter(isAssistantMessage))
+    } catch {}
+  }
+
   const doFetch = (sessionID: string) => {
     const version = ++currentVersion
-    setTick(t => t + 1)
+    refreshFromCache(sessionID)
+    refreshFromHTTP(sessionID, version)
 
     const visited = new Set<string>([sessionID])
     fetchChildrenAsync(sessionID, visited, version).then(children => {
@@ -113,29 +129,48 @@ const useSessionMessages = (api: TuiPluginApi, rootSessionID: Accessor<string>) 
 
   doFetch(rootSessionID())
 
-  const unsubMsg = api.event.on("message.updated", () => {
+  const unsubMsg = api.event.on("message.updated", (event) => {
     const sid = rootSessionID()
-    if (sid) doFetch(sid)
+    if (sid !== event.properties.sessionID) return
+    const info = event.properties.info
+    if (!isAssistantMessage(info)) return
+    setRootMessages((prev) => {
+      const idx = prev.findIndex((m) => m.id === info.id)
+      if (idx >= 0) {
+        const next = [...prev]
+        next[idx] = info
+        return next
+      }
+      return [...prev, info]
+    })
   })
+
+  const unsubRemoved = api.event.on("message.removed", (event) => {
+    const sid = rootSessionID()
+    if (sid !== event.properties.sessionID) return
+    setRootMessages((prev) => prev.filter((m) => m.id !== event.properties.messageID))
+  })
+
   const unsubStatus = api.event.on("session.status", () => {
     const sid = rootSessionID()
     if (sid) doFetch(sid)
   })
 
+  const unsubSessionUpdated = api.event.on("session.updated", (event) => {
+    const sid = rootSessionID()
+    if (sid !== event.properties.sessionID) return
+    refreshFromCache(sid)
+  })
+
   api.lifecycle.onDispose(() => {
     currentVersion += 1
     unsubMsg()
+    unsubRemoved()
     unsubStatus()
+    unsubSessionUpdated()
   })
 
-  const usageMessages = createMemo<AssistantMessage[]>(() => {
-    tick()
-    const sid = rootSessionID()
-    if (!sid) return []
-    const rootMsgs = api.state.session.messages(sid)
-      .filter(isAssistantMessage)
-    return [...rootMsgs, ...extraMessages()]
-  })
+  const usageMessages = createMemo<AssistantMessage[]>(() => [...rootMessages(), ...extraMessages()])
   return { usageMessages }
 }
 
