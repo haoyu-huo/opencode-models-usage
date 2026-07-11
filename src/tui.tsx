@@ -64,6 +64,18 @@ const useSessionMessages = (api: TuiPluginApi, rootSessionID: Accessor<string>) 
 
   let currentVersion = 0
 
+  const fetchMessages = async (
+    sessionID: string,
+    version: number,
+  ): Promise<AssistantMessage[]> => {
+    const res = await api.client.session.messages({ sessionID })
+    if (currentVersion !== version) return []
+    if (res.error || !res.data) return []
+    return res.data
+      .map((item) => item.info)
+      .filter(isAssistantMessage)
+  }
+
   const fetchChildrenAsync = async (
     sessionID: string,
     visited: Set<string>,
@@ -79,7 +91,8 @@ const useSessionMessages = (api: TuiPluginApi, rootSessionID: Accessor<string>) 
       if (visited.has(child.id)) continue
       visited.add(child.id)
 
-      const childMsgs = api.state.session.messages(child.id).filter(isAssistantMessage)
+      const childMsgs = await fetchMessages(child.id, version)
+      if (currentVersion !== version) return msgs
       msgs.push(...childMsgs)
       const nested = await fetchChildrenAsync(child.id, visited, version)
       msgs.push(...nested)
@@ -90,9 +103,10 @@ const useSessionMessages = (api: TuiPluginApi, rootSessionID: Accessor<string>) 
   const doFetch = (sessionID: string) => {
     const version = ++currentVersion
 
-    const root = api.state.session.messages(sessionID).filter(isAssistantMessage)
-    if (currentVersion !== version) return
-    setRootMessages(root)
+    fetchMessages(sessionID, version).then(root => {
+      if (currentVersion !== version) return
+      setRootMessages(root)
+    })
 
     const visited = new Set<string>([sessionID])
     fetchChildrenAsync(sessionID, visited, version).then(children => {
