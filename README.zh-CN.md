@@ -34,7 +34,7 @@
 ## 侧边栏实际显示示例
 
 ```text
-Models Usage v2.1.4 (sort: default)
+Models Usage v2.1.5 (sort: default)
 Total: $0 · 84.2K tokens
 Cache: 81.8K (97.1%)
 ▾ OpenAI/GPT-5.4 Fast
@@ -115,7 +115,7 @@ opencode plugin @jou_hhy/opencode-models-usage-plugin --global
 ## 包信息
 
 - npm：`@jou_hhy/opencode-models-usage-plugin`
-- 当前版本：`2.1.4`
+- 当前版本：`2.1.5`
 
 ## License
 

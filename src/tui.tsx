@@ -130,36 +130,48 @@ const useSessionMessages = (api: TuiPluginApi, rootSessionID: Accessor<string>) 
   doFetch(rootSessionID())
 
   const unsubMsg = api.event.on("message.updated", (event) => {
-    const sid = rootSessionID()
-    if (sid !== event.properties.sessionID) return
-    const info = event.properties.info
-    if (!isAssistantMessage(info)) return
-    setRootMessages((prev) => {
-      const idx = prev.findIndex((m) => m.id === info.id)
-      if (idx >= 0) {
-        const next = [...prev]
-        next[idx] = info
-        return next
-      }
-      return [...prev, info]
-    })
+    if ((event.type as string) !== "message.updated") return
+    try {
+      const sid = rootSessionID()
+      if (sid !== event.properties.sessionID) return
+      const info = event.properties.info
+      if (!info || !isAssistantMessage(info)) return
+      setRootMessages((prev) => {
+        const idx = prev.findIndex((m) => m.id === info.id)
+        if (idx >= 0) {
+          const next = [...prev]
+          next[idx] = info
+          return next
+        }
+        return [...prev, info]
+      })
+    } catch {}
   })
 
   const unsubRemoved = api.event.on("message.removed", (event) => {
-    const sid = rootSessionID()
-    if (sid !== event.properties.sessionID) return
-    setRootMessages((prev) => prev.filter((m) => m.id !== event.properties.messageID))
+    if ((event.type as string) !== "message.removed") return
+    try {
+      const sid = rootSessionID()
+      if (sid !== event.properties.sessionID) return
+      setRootMessages((prev) => prev.filter((m) => m.id !== event.properties.messageID))
+    } catch {}
   })
 
-  const unsubStatus = api.event.on("session.status", () => {
-    const sid = rootSessionID()
-    if (sid) doFetch(sid)
+  const unsubStatus = api.event.on("session.status", (event) => {
+    if ((event.type as string) !== "session.status") return
+    try {
+      const sid = rootSessionID()
+      if (sid) doFetch(sid)
+    } catch {}
   })
 
   const unsubSessionUpdated = api.event.on("session.updated", (event) => {
-    const sid = rootSessionID()
-    if (sid !== event.properties.sessionID) return
-    refreshFromCache(sid)
+    if ((event.type as string) !== "session.updated") return
+    try {
+      const sid = rootSessionID()
+      if (sid !== event.properties.sessionID) return
+      refreshFromCache(sid)
+    } catch {}
   })
 
   api.lifecycle.onDispose(() => {
