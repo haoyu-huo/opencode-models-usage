@@ -33,7 +33,7 @@ OpenCode のサイドバーで、現在のセッションツリー（再帰的�
 ## サイドバー表示例
 
 ```text
-Models Usage v2.1.2 (sort: default)
+Models Usage v2.1.3 (sort: default)
 Total: $0 · 84.2K tokens
 Cache: 81.8K (97.1%)
 ▾ OpenAI/GPT-5.4 Fast
@@ -112,7 +112,7 @@ opencode plugin @jou_hhy/opencode-models-usage-plugin --global
 ## パッケージ情報
 
 - npm: `@jou_hhy/opencode-models-usage-plugin`
-- 現在のバージョン: `2.1.2`
+- 現在のバージョン: `2.1.3`
 
 ## License
 
