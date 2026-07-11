@@ -59,12 +59,12 @@ const isAssistantMessage = (m: { role: string }): m is AssistantMessage =>
   m.role === "assistant"
 
 const useSessionMessages = (api: TuiPluginApi, rootSessionID: Accessor<string>) => {
-  const [rootMessages, setRootMessages] = createSignal<AssistantMessage[]>([])
+  const [tick, setTick] = createSignal(0)
   const [extraMessages, setExtraMessages] = createSignal<AssistantMessage[]>([])
 
   let currentVersion = 0
 
-  const fetchMessages = async (
+  const fetchChildMessages = async (
     sessionID: string,
     version: number,
   ): Promise<AssistantMessage[]> => {
@@ -91,7 +91,7 @@ const useSessionMessages = (api: TuiPluginApi, rootSessionID: Accessor<string>) 
       if (visited.has(child.id)) continue
       visited.add(child.id)
 
-      const childMsgs = await fetchMessages(child.id, version)
+      const childMsgs = await fetchChildMessages(child.id, version)
       if (currentVersion !== version) return msgs
       msgs.push(...childMsgs)
       const nested = await fetchChildrenAsync(child.id, visited, version)
@@ -102,17 +102,13 @@ const useSessionMessages = (api: TuiPluginApi, rootSessionID: Accessor<string>) 
 
   const doFetch = (sessionID: string) => {
     const version = ++currentVersion
-
-    fetchMessages(sessionID, version).then(root => {
-      if (currentVersion !== version) return
-      setRootMessages(root)
-    })
+    setTick(t => t + 1)
 
     const visited = new Set<string>([sessionID])
     fetchChildrenAsync(sessionID, visited, version).then(children => {
       if (currentVersion !== version) return
       setExtraMessages(children)
-    })
+    }).catch(() => {})
   }
 
   doFetch(rootSessionID())
@@ -132,7 +128,14 @@ const useSessionMessages = (api: TuiPluginApi, rootSessionID: Accessor<string>) 
     unsubStatus()
   })
 
-  const usageMessages = createMemo(() => [...rootMessages(), ...extraMessages()])
+  const usageMessages = createMemo<AssistantMessage[]>(() => {
+    tick()
+    const sid = rootSessionID()
+    if (!sid) return []
+    const rootMsgs = api.state.session.messages(sid)
+      .filter(isAssistantMessage)
+    return [...rootMsgs, ...extraMessages()]
+  })
   return { usageMessages }
 }
 
@@ -223,7 +226,7 @@ const SessionUsagePanel = (props: { api: TuiPluginApi; sessionID: string }) => {
   const theme = () => props.api.theme.current
 
   const usage = createMemo(() => getSessionUsage(
-    mapMessages(usageMessages() as AssistantMessage[]),
+    mapMessages(usageMessages()),
     props.api.state.provider as readonly Provider[] | undefined,
   ))
 
