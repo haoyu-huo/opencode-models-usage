@@ -33,7 +33,7 @@ OpenCode 사이드바에서 현재 세션 트리(재귀적인 하위 세션 포�
 ## 사이드바 예시
 
 ```text
-Models Usage v2.1.1 (sort: default)
+Models Usage v2.1.2 (sort: default)
 Total: $0 · 84.2K tokens
 Cache: 81.8K (97.1%)
 ▾ OpenAI/GPT-5.4 Fast
@@ -112,7 +112,7 @@ opencode plugin @jou_hhy/opencode-models-usage-plugin --global
 ## 패키지 정보
 
 - npm: `@jou_hhy/opencode-models-usage-plugin`
-- 현재 버전: `2.1.1`
+- 현재 버전: `2.1.2`
 
 ## License
 
